@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Jaturat&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import local Jaturat font */
+@font-face {
+  font-family: 'JaturatBold';
+  src: url('/assets/fonts/jaturat-bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'JaturatSemiBold';
+  src: url('/assets/fonts/jaturat-semibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Galantic';
+  src: url('/assets/fonts/Galantic-Regular.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Koba';
+  src: url('/assets/fonts/KOBA.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+}
+@font-face {
+  font-family: 'Gilroy';
+  src: url('/assets/fonts/Gilroy-Light.otf') format('opentype');
+  font-weight: 800;
+  font-style: normal;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --font-jaturat-bold: 'JaturatBold', sans-serif;
+  --font-jaturat-semibold: 'JaturatSemiBold', sans-serif;
+  --font-jaturat-extrabold: 'JaturatExtraBold', sans-serif;
+  --font-galantic: 'Galantic', sans-serif;
+  --font-koba: 'Koba', sans-serif;
+  --font-gilroy: 'Gilroy', sans-serif;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+}
+
+
+@layer utilities {
+  .heading-bold {
+    font-family: var(--font-jaturat-bold);
+  }
+  .heading-semibold {
+    font-family: var(--font-jaturat-semibold);
+  }
+  .heading-extrabold {
+    font-family: var(--font-jaturat-extrabold);
+  }
+  .font-galantic {
+    font-family: var(--font-galantic);
+  }
+  .font-main{
+    font-family: var(--font-koba);
+  }
+  .font-sub{
+    font-family: var(--font-gilroy);
+  }
+}
