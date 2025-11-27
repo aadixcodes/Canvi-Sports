@@ -23,6 +23,50 @@ const RegistrationPage = () => {
     terms: false
   });
 
+  // OTP states
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpError, setOtpError] = useState('');
+  // Send OTP to email
+  const handleSendOtp = async () => {
+    setOtpLoading(true);
+    setOtpError('');
+    try {
+      const res = await fetch('/api/registration/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to send OTP');
+      setOtpSent(true);
+    } catch (err) {
+      setOtpError(err.message || 'Failed to send OTP');
+    }
+    setOtpLoading(false);
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async () => {
+    setOtpLoading(true);
+    setOtpError('');
+    try {
+      const res = await fetch('/api/registration/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, otp })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Invalid OTP');
+      setOtpVerified(true);
+    } catch (err) {
+      setOtpError(err.message || 'OTP verification failed');
+    }
+    setOtpLoading(false);
+  };
+
   // Use ref to track if we've redirected to app
   const hasRedirected = useRef(false);
 
@@ -62,38 +106,37 @@ const RegistrationPage = () => {
   // Validate form before payment
   const validateForm = () => {
     const requiredFields = ['firstName', 'lastName', 'fatherName', 'email', 'mobile', 'state', 'district'];
-    
     for (const field of requiredFields) {
       if (!formData[field]) {
         alert(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
         return false;
       }
     }
-
     if (!formData.terms) {
       alert('Please accept the Terms and Conditions');
       return false;
     }
-
     if (!formData.aadharFile) {
       alert('Please upload your Aadhar card');
       return false;
     }
-
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       alert('Please enter a valid email address');
       return false;
     }
-
     // Basic mobile validation
     const mobileRegex = /^[6-9]\d{9}$/;
     if (!mobileRegex.test(formData.mobile)) {
       alert('Please enter a valid 10-digit mobile number');
       return false;
     }
-
+    // OTP must be verified
+    if (!otpVerified) {
+      alert('Please verify your email with OTP before submitting.');
+      return false;
+    }
     return true;
   };
 
@@ -258,6 +301,12 @@ const RegistrationPage = () => {
     if (fileInput) {
       fileInput.value = '';
     }
+
+    // Reset OTP states
+    setOtp('');
+    setOtpSent(false);
+    setOtpVerified(false);
+    setOtpError('');
   };
 
   return (
@@ -393,18 +442,51 @@ const RegistrationPage = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1 font-sub">
                               Email Address *
                             </label>
-                            <input 
-                              type="email" 
-                              name="email"
-                              value={formData.email}
-                              onChange={handleInputChange}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29066d] focus:border-transparent transition-all text-xs font-sub"
-                              placeholder="Enter email address"
-                              required
-                            />
+                            <div className="flex gap-2">
+                              <input 
+                                type="email" 
+                                name="email"
+                                value={formData.email}
+                                onChange={handleInputChange}
+                                className="w-2/3 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29066d] focus:border-transparent transition-all text-xs font-sub"
+                                placeholder="Enter email address"
+                                required
+                                disabled={otpSent || otpVerified}
+                              />
+                              <button
+                                type="button"
+                                onClick={handleSendOtp}
+                                disabled={otpLoading || !formData.email || otpSent || otpVerified}
+                                className="bg-blue-500 text-white px-3 py-2 rounded-lg text-xs font-sub disabled:bg-blue-300"
+                              >
+                                {otpLoading ? 'Sending...' : otpVerified ? 'Verified' : otpSent ? 'Sent' : 'Send OTP'}
+                              </button>
+                            </div>
+                            {/* OTP input and verify */}
+                            {otpSent && !otpVerified && (
+                              <div className="mt-2 flex gap-2">
+                                <input
+                                  type="text"
+                                  value={otp}
+                                  onChange={e => setOtp(e.target.value)}
+                                  className="w-32 px-2 py-1 border border-gray-300 rounded-lg text-xs font-sub"
+                                  placeholder="Enter OTP"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleVerifyOtp}
+                                  disabled={otpLoading || !otp}
+                                  className="bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-sub disabled:bg-green-300"
+                                >
+                                  {otpLoading ? 'Verifying...' : 'Verify OTP'}
+                                </button>
+                              </div>
+                            )}
+                            {otpError && <div className="text-xs text-red-600 mt-1">{otpError}</div>}
+                            {otpVerified && <div className="text-xs text-green-600 mt-1">Email verified!</div>}
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 font-sub">
+                            <label className="block  text-sm font-medium text-gray-700 mb-1 font-sub">
                               Mobile Number *
                             </label>
                             <input 
@@ -432,14 +514,34 @@ const RegistrationPage = () => {
                             required
                           >
                             <option value="">Choose your state</option>
-                            <option value="chhattisgarh">Chhattisgarh</option>
-                            <option value="madhya-pradesh">Madhya Pradesh</option>
-                            <option value="maharashtra">Maharashtra</option>
-                            <option value="odisha">Odisha</option>
-                            <option value="jharkhand">Jharkhand</option>
-                            <option value="bihar">Bihar</option>
-                            <option value="uttar-pradesh">Uttar Pradesh</option>
-                            <option value="other">Other</option>
+                            <option value="Andhra Pradesh">Andhra Pradesh</option>
+                            <option value="Arunachal Pradesh">Arunachal Pradesh</option>
+                            <option value="Assam">Assam</option>
+                            <option value="Bihar">Bihar</option>
+                            <option value="Chhattisgarh">Chhattisgarh</option>
+                            <option value="Goa">Goa</option>
+                            <option value="Gujarat">Gujarat</option>
+                            <option value="Haryana">Haryana</option>
+                            <option value="Himachal Pradesh">Himachal Pradesh</option>
+                            <option value="Jharkhand">Jharkhand</option>
+                            <option value="Karnataka">Karnataka</option>
+                            <option value="Kerala">Kerala</option>
+                            <option value="Madhya Pradesh">Madhya Pradesh</option>
+                            <option value="Maharashtra">Maharashtra</option>
+                            <option value="Maipur">Maipur</option>
+                            <option value="Meghalaya">Meghalaya</option>
+                            <option value="Mizoram">Mizoram</option>
+                            <option value="Nagaland">Nagaland</option>
+                            <option value="Odisha">Odisha</option>
+                            <option value="Punjab">Punjab</option>
+                            <option value="Rajasthan">Rajasthan</option>
+                            <option value="Sikkim">Sikkim</option>
+                            <option value="Tamil Nadu">Tamil Nadu</option>
+                            <option value="Telangana">Telangana</option>
+                            <option value="Tripura">Tripura</option>
+                            <option value="Uttar Pradesh">Uttar Pradesh</option>
+                            <option value="Uttarakhand">Uttarakhand</option>
+                            <option value="West Bengal">West Bengal</option>
                           </select>
                         </div>
                         
@@ -448,22 +550,16 @@ const RegistrationPage = () => {
                           <label className="block text-sm font-medium text-gray-700 mb-1 font-sub">
                             Select District *
                           </label>
-                          <select 
-                            name="district"
-                            value={formData.district}
-                            onChange={handleInputChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29066d] focus:border-transparent transition-all text-xs font-sub"
-                            required
-                          >
-                            <option value="">Choose your district</option>
-                            <option value="raipur">Raipur</option>
-                            <option value="bilaspur">Bilaspur</option>
-                            <option value="durg">Durg</option>
-                            <option value="rajnandgaon">Rajnandgaon</option>
-                            <option value="korba">Korba</option>
-                            <option value="raigarh">Raigarh</option>
-                            <option value="other">Other</option>
-                          </select>
+                          <input 
+                              type="text" 
+                              name="district"
+                              value={formData.district}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29066d] focus:border-transparent transition-all text-xs font-sub"
+                              placeholder="Enter district"
+                              required
+                            />
+                          
                         </div>
                         
                         {/* Aadhar Card Upload */}

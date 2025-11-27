@@ -25,7 +25,7 @@ const Login = () => {
     setError('');
 
     // Simple authentication (replace with actual API call)
-    if (formData.username === 'canvi@sports' && formData.password === 'cnv@sprt852') {
+    if (formData.username === process.env.ADMIN_USERNAME && formData.password === process.env.ADMIN_PASSWORD) {
       localStorage.setItem('adminAuthenticated', 'true');
       router.push('/admin-dashboard');
     } else {
@@ -106,15 +106,6 @@ const Login = () => {
               'Sign In'
             )}
           </button>
-
-          {/* Demo Credentials */}
-          {/* <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <p className="text-sm text-gray-600 text-center font-sub">
-              <strong>Demo Credentials:</strong><br />
-              Username: admin<br />
-              Password: admin123
-            </p>
-          </div> */}
         </form>
       </div>
     </div>

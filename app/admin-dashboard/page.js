@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Filter, Download, X, CheckCircle, XCircle, Eye, LogOut, Loader2 } from 'lucide-react';
+import { da } from 'zod/v4/locales';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('requests');
@@ -79,9 +80,9 @@ const AdminDashboard = () => {
     router.push('/login');
   };
 
-  const handleAccept = async (id) => {
+  const handleAccept = async (id, email, firstName) => {
     try {
-      setActionLoading(prev => ({ ...prev, [id]: true }));
+      setActionLoading(prev => ({ ...prev, [id]: 'accept' }));
       const response = await fetch(`/api/registration/${id}`, {
         method: 'PATCH',
         headers: {
@@ -89,16 +90,19 @@ const AdminDashboard = () => {
         },
         body: JSON.stringify({ status: 'approved' }),
       });
-
       const data = await response.json();
-
       if (data.success) {
-   
         setCandidates(prev => prev.map(candidate => 
           candidate.id === id 
             ? { ...candidate, status: 'verified' }
             : candidate
         ));
+        // Send accepted mail
+        await fetch('/api/registration/send-status-mail', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, status: 'approved', firstName: data.firstName})
+        });
       } else {
         alert(data.message || 'Failed to approve registration');
       }
@@ -106,13 +110,13 @@ const AdminDashboard = () => {
       console.error('Error approving registration:', error);
       alert('Failed to approve registration. Please try again.');
     } finally {
-      setActionLoading(prev => ({ ...prev, [id]: false }));
+      setActionLoading(prev => ({ ...prev, [id]: null }));
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (id, email,firstName) => {
     try {
-      setActionLoading(prev => ({ ...prev, [id]: true }));
+      setActionLoading(prev => ({ ...prev, [id]: 'reject' }));
       const response = await fetch(`/api/registration/${id}`, {
         method: 'PATCH',
         headers: {
@@ -120,16 +124,19 @@ const AdminDashboard = () => {
         },
         body: JSON.stringify({ status: 'rejected' }),
       });
-
       const data = await response.json();
-
       if (data.success) {
-      
         setCandidates(prev => prev.map(candidate => 
           candidate.id === id 
             ? { ...candidate, status: 'rejected' }
             : candidate
         ));
+        // Send rejected mail
+        await fetch('/api/registration/send-status-mail', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, status: 'rejected', firstName: data.firstName })
+        });
       } else {
         alert(data.message || 'Failed to reject registration');
       }
@@ -137,7 +144,7 @@ const AdminDashboard = () => {
       console.error('Error rejecting registration:', error);
       alert('Failed to reject registration. Please try again.');
     } finally {
-      setActionLoading(prev => ({ ...prev, [id]: false }));
+      setActionLoading(prev => ({ ...prev, [id]: null }));
     }
   };
 
@@ -350,11 +357,11 @@ const AdminDashboard = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => handleAccept(candidate.id)}
-                              disabled={actionLoading[candidate.id]}
+                              onClick={() => handleAccept(candidate.id, candidate.email, candidate.firstName)}
+                              disabled={actionLoading[candidate.id] === 'accept'}
                               className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700 transition-colors text-xs font-sub disabled:bg-green-400 disabled:cursor-not-allowed"
                             >
-                              {actionLoading[candidate.id] ? (
+                              {actionLoading[candidate.id] === 'accept' ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
                               ) : (
                                 <CheckCircle className="w-3 h-3" />
@@ -362,11 +369,11 @@ const AdminDashboard = () => {
                               Accept
                             </button>
                             <button
-                              onClick={() => handleReject(candidate.id)}
-                              disabled={actionLoading[candidate.id]}
+                              onClick={() => handleReject(candidate.id, candidate.email, candidate.firstName)}
+                              disabled={actionLoading[candidate.id] === 'reject'}
                               className="flex items-center gap-1 bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors text-xs font-sub disabled:bg-red-400 disabled:cursor-not-allowed"
                             >
-                              {actionLoading[candidate.id] ? (
+                              {actionLoading[candidate.id] === 'reject' ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
                               ) : (
                                 <XCircle className="w-3 h-3" />
