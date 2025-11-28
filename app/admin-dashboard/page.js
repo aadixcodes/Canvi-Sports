@@ -6,6 +6,12 @@ import { da } from 'zod/v4/locales';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('requests');
+  const [emailTab, setEmailTab] = useState(false);
+  const [emailContent, setEmailContent] = useState('');
+  const [selectedApproved, setSelectedApproved] = useState([]);
+  const [approvedSearch, setApprovedSearch] = useState('');
+  const [approvedState, setApprovedState] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterState, setFilterState] = useState('');
@@ -156,8 +162,18 @@ const AdminDashboard = () => {
       candidate.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       candidate.mobile?.includes(searchTerm);
     const matchesState = !filterState || candidate.state === filterState;
-    
     return matchesTab && matchesSearch && matchesState;
+  });
+
+  // For approved candidates filtering in email tab
+  const approvedCandidates = candidates.filter(c => c.status === 'verified');
+  const filteredApproved = approvedCandidates.filter(candidate => {
+    const matchesName =
+      candidate.firstName?.toLowerCase().includes(approvedSearch.toLowerCase()) ||
+      candidate.lastName?.toLowerCase().includes(approvedSearch.toLowerCase()) ||
+      candidate.email?.toLowerCase().includes(approvedSearch.toLowerCase());
+    const matchesState = !approvedState || candidate.state === approvedState;
+    return matchesName && matchesState;
   });
 
   const downloadAadhar = (imageUrl, fileName) => {
@@ -170,7 +186,8 @@ const AdminDashboard = () => {
   };
 
   const states = [...new Set(candidates.map(candidate => candidate.state))];
-
+  const approvedStates = [...new Set(approvedCandidates.map(candidate => candidate.state))];
+  console.log(selectedApproved)
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -207,16 +224,16 @@ const AdminDashboard = () => {
           ].map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => { setActiveTab(tab.key); setEmailTab(false); }}
               className={`flex items-center gap-3 px-6 py-3 rounded-lg font-semibold transition-all font-sub ${
-                activeTab === tab.key
+                activeTab === tab.key && !emailTab
                   ? 'bg-[#29066d] text-white shadow-lg'
                   : 'bg-white text-gray-700 border border-gray-300 hover:border-[#29066d] hover:text-[#29066d]'
               }`}
             >
               {tab.label}
               <span className={`px-2 py-1 rounded-full text-xs ${
-                activeTab === tab.key
+                activeTab === tab.key && !emailTab
                   ? 'bg-white text-[#29066d]'
                   : 'bg-gray-100 text-gray-700'
               }`}>
@@ -224,192 +241,330 @@ const AdminDashboard = () => {
               </span>
             </button>
           ))}
+          <button
+            onClick={() => { setEmailTab(true); setActiveTab('verified'); }}
+            className={`flex items-center gap-3 px-6 py-3 rounded-lg font-semibold transition-all font-sub ${
+              emailTab ? 'bg-[#29066d] text-white shadow-lg' : 'bg-white text-gray-700 border border-gray-300 hover:border-[#29066d] hover:text-[#29066d]'
+            }`}
+          >
+            Send Email to Participants
+          </button>
         </div>
 
-        {/* Search and Filter */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search by name, email, or mobile..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29066d] focus:border-transparent font-sub"
+        {/* Email Section */}
+        {emailTab ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h2 className="text-xl font-bold mb-4 text-[#29066d] font-main">Send Email to Approved Participants</h2>
+            <div className="mb-4">
+              <textarea
+                className="w-full min-h-[120px] border border-gray-300 rounded-lg p-3 font-sub focus:ring-2 focus:ring-[#29066d] focus:border-transparent"
+                placeholder="Write your email here..."
+                value={emailContent}
+                onChange={e => setEmailContent(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
-              <select
-                value={filterState}
-                onChange={(e) => setFilterState(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29066d] focus:border-transparent font-sub"
-              >
-                <option value="">All States</option>
-                {states.map(state => (
-                  <option key={state} value={state}>{state}</option>
-                ))}
-              </select>
+            <div className="flex flex-col md:flex-row gap-4 mb-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={approvedSearch}
+                  onChange={e => setApprovedSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29066d] focus:border-transparent font-sub"
+                />
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value={approvedState}
+                  onChange={e => setApprovedState(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29066d] focus:border-transparent font-sub"
+                >
+                  <option value="">All States</option>
+                  {approvedStates.map(state => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
-                    Candidate Info
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
-                    Contact
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
-                    Location
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
-                    Aadhar Card
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
-                    Terms
-                  </th>
-                  {activeTab === 'requests' && (
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
-                      Actions
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {loading ? (
+            <div className="mb-4">
+              <label className="flex items-center gap-2 font-sub">
+                <input
+                  type="checkbox"
+                  checked={selectedApproved.length === filteredApproved.length && filteredApproved.length > 0}
+                  onChange={e => {
+                    if (e.target.checked) {
+                      setSelectedApproved(filteredApproved.map(c => c.id));
+                    } else {
+                      setSelectedApproved([]);
+                    }
+                  }}
+                />
+                Select All
+              </label>
+            </div>
+            <div className="overflow-x-auto mb-4">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <td colSpan={activeTab === 'requests' ? 7 : 6} className="px-6 py-12 text-center">
-                      <div className="flex flex-col items-center justify-center gap-2">
-                        <Loader2 className="w-8 h-8 animate-spin text-[#29066d]" />
-                        <p className="text-gray-500 font-sub">Loading registrations...</p>
-                      </div>
-                    </td>
+                    <th className="px-4 py-2"></th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">Name</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">Email</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">State</th>
                   </tr>
-                ) : filteredCandidates.length === 0 ? (
-                  <tr>
-                    <td colSpan={activeTab === 'requests' ? 7 : 6} className="px-6 py-12 text-center">
-                      <div className="text-gray-400 text-lg font-sub">No candidates found</div>
-                      <p className="text-gray-500 text-sm mt-2 font-sub">
-                        {searchTerm || filterState 
-                          ? 'Try adjusting your search or filter criteria' 
-                          : `No ${activeTab} candidates available`}
-                      </p>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredCandidates.map((candidate) => (
-                    <tr key={candidate.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 font-sub">
-                            {candidate.firstName} {candidate.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500 font-sub">
-                            Father: {candidate.fatherName}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-sub">{candidate.email}</div>
-                        <div className="text-sm text-gray-500 font-sub">{candidate.mobile}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 font-sub">{candidate.state}</div>
-                        <div className="text-sm text-gray-500 font-sub">{candidate.district}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={candidate.aadharFile}
-                            alt="Aadhar Card"
-                            className="w-12 h-8 object-cover rounded border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => setSelectedImage(candidate.aadharFile)}
-                            onError={(e) => {
-                              e.target.src = 'https://via.placeholder.com/150x100?text=Image+Not+Found';
+                </thead>
+                <tbody>
+                  {filteredApproved.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center text-gray-400 py-8 font-sub">No approved candidates found</td>
+                    </tr>
+                  ) : (
+                    filteredApproved.map(candidate => (
+                      <tr key={candidate.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-2">
+                          <input
+                            type="checkbox"
+                            checked={selectedApproved.includes(candidate.id)}
+                            onChange={e => {
+                              if (e.target.checked) {
+                                setSelectedApproved(prev => [...prev, candidate.id]);
+                              } else {
+                                setSelectedApproved(prev => prev.filter(id => id !== candidate.id));
+                              }
                             }}
                           />
-                          <button
-                            onClick={() => downloadAadhar(candidate.aadharFile, `aadhar-${candidate.firstName}-${candidate.lastName}.jpg`)}
-                            className="text-gray-400 hover:text-[#29066d] transition-colors"
-                            title="Download Aadhar"
-                          >
-                            <Download className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          candidate.terms 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        } font-sub`}>
-                          {candidate.terms ? 'Agreed' : 'Not Agreed'}
-                        </span>
-                      </td>
-                      {activeTab === 'requests' && (
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleAccept(candidate.id, candidate.email, candidate.firstName)}
-                              disabled={actionLoading[candidate.id] === 'accept'}
-                              className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700 transition-colors text-xs font-sub disabled:bg-green-400 disabled:cursor-not-allowed"
-                            >
-                              {actionLoading[candidate.id] === 'accept' ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <CheckCircle className="w-3 h-3" />
-                              )}
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => handleReject(candidate.id, candidate.email, candidate.firstName)}
-                              disabled={actionLoading[candidate.id] === 'reject'}
-                              className="flex items-center gap-1 bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors text-xs font-sub disabled:bg-red-400 disabled:cursor-not-allowed"
-                            >
-                              {actionLoading[candidate.id] === 'reject' ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <XCircle className="w-3 h-3" />
-                              )}
-                              Reject
-                            </button>
-                          </div>
                         </td>
+                        <td className="px-4 py-2 font-sub">{candidate.firstName} {candidate.lastName}</td>
+                        <td className="px-4 py-2 font-sub">{candidate.email}</td>
+                        <td className="px-4 py-2 font-sub">{candidate.state}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <button
+              className="bg-[#29066d] text-white px-6 py-2 rounded-lg font-sub font-semibold hover:bg-[#180444] transition-colors disabled:opacity-50"
+              disabled={sendingEmail || !emailContent || selectedApproved.length === 0}
+              onClick={async () => {
+                setSendingEmail(true);
+                try {
+                  const res = await fetch('/api/registration/send-bulk-mail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      participantIds: selectedApproved,
+                      message: emailContent
+                    })
+                  });
+                  const data = await res.json();
+                  if (data.success) {
+                    setEmailContent('');
+                    setSelectedApproved([]);
+                    alert('Email sent to selected participants!');
+                  } else {
+                    alert(data.error || 'Failed to send email.');
+                  }
+                } catch (err) {
+                  alert('Failed to send email.');
+                } finally {
+                  setSendingEmail(false);
+                }
+              }}
+            >
+              {sendingEmail ? <Loader2 className="w-4 h-4 animate-spin inline-block mr-2" /> : null}
+              Send Email
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Search and Filter */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, email, or mobile..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29066d] focus:border-transparent font-sub"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <select
+                    value={filterState}
+                    onChange={(e) => setFilterState(e.target.value)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#29066d] focus:border-transparent font-sub"
+                  >
+                    <option value="">All States</option>
+                    {states.map(state => (
+                      <option key={state} value={state}>{state}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
+                        Candidate Info
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
+                        Contact
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
+                        Location
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
+                        Aadhar Card
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
+                        Terms
+                      </th>
+                      {activeTab === 'requests' && (
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
+                          Actions
+                        </th>
                       )}
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        {/* Pagination Controls */}
-        <div className="flex justify-between items-center mt-6">
-          <button
-            onClick={handlePrevPage}
-            disabled={page === 1}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <span className="font-sub text-sm">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            onClick={handleNextPage}
-            disabled={page === totalPages || totalPages === 0}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={activeTab === 'requests' ? 7 : 6} className="px-6 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center gap-2">
+                            <Loader2 className="w-8 h-8 animate-spin text-[#29066d]" />
+                            <p className="text-gray-500 font-sub">Loading registrations...</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : filteredCandidates.length === 0 ? (
+                      <tr>
+                        <td colSpan={activeTab === 'requests' ? 7 : 6} className="px-6 py-12 text-center">
+                          <div className="text-gray-400 text-lg font-sub">No candidates found</div>
+                          <p className="text-gray-500 text-sm mt-2 font-sub">
+                            {searchTerm || filterState 
+                              ? 'Try adjusting your search or filter criteria' 
+                              : `No ${activeTab} candidates available`}
+                          </p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCandidates.map((candidate) => (
+                        <tr key={candidate.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900 font-sub">
+                                {candidate.firstName} {candidate.lastName}
+                              </div>
+                              <div className="text-sm text-gray-500 font-sub">
+                                Father: {candidate.fatherName}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 font-sub">{candidate.email}</div>
+                            <div className="text-sm text-gray-500 font-sub">{candidate.mobile}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 font-sub">{candidate.state}</div>
+                            <div className="text-sm text-gray-500 font-sub">{candidate.district}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={candidate.aadharFile}
+                                alt="Aadhar Card"
+                                className="w-12 h-8 object-cover rounded border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => setSelectedImage(candidate.aadharFile)}
+                                onError={(e) => {
+                                  e.target.src = 'https://via.placeholder.com/150x100?text=Image+Not+Found';
+                                }}
+                              />
+                              <button
+                                onClick={() => downloadAadhar(candidate.aadharFile, `aadhar-${candidate.firstName}-${candidate.lastName}.jpg`)}
+                                className="text-gray-400 hover:text-[#29066d] transition-colors"
+                                title="Download Aadhar"
+                              >
+                                <Download className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              candidate.terms 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            } font-sub`}>
+                              {candidate.terms ? 'Agreed' : 'Not Agreed'}
+                            </span>
+                          </td>
+                          {activeTab === 'requests' && (
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleAccept(candidate.id, candidate.email, candidate.firstName)}
+                                  disabled={actionLoading[candidate.id] === 'accept'}
+                                  className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700 transition-colors text-xs font-sub disabled:bg-green-400 disabled:cursor-not-allowed"
+                                >
+                                  {actionLoading[candidate.id] === 'accept' ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <CheckCircle className="w-3 h-3" />
+                                  )}
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => handleReject(candidate.id, candidate.email, candidate.firstName)}
+                                  disabled={actionLoading[candidate.id] === 'reject'}
+                                  className="flex items-center gap-1 bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors text-xs font-sub disabled:bg-red-400 disabled:cursor-not-allowed"
+                                >
+                                  {actionLoading[candidate.id] === 'reject' ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : (
+                                    <XCircle className="w-3 h-3" />
+                                  )}
+                                  Reject
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            {/* Pagination Controls */}
+            <div className="flex justify-between items-center mt-6">
+              <button
+                onClick={handlePrevPage}
+                disabled={page === 1}
+                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="font-sub text-sm">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={handleNextPage}
+                disabled={page === totalPages || totalPages === 0}
+                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </>
+        )}
+
       </div>
 
       {/* Image Preview Modal */}
