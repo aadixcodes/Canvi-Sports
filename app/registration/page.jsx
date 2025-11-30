@@ -548,7 +548,7 @@ const RegistrationPage = () => {
                         {/* Select District */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1 font-sub">
-                            Select District *
+                            District *
                           </label>
                           <input 
                               type="text" 
