@@ -29,7 +29,7 @@ export async function POST(req) {
       );
     }
 
-    //Rate limiting
+    // Rate limiting
     const now = Date.now();
     const lastRequest = rateLimit.get(email);
     if (lastRequest && now - lastRequest < 60 * 1000) {
@@ -54,23 +54,69 @@ export async function POST(req) {
         pass: process.env.EMAIL_PASS,
       },
     });
+
+    // ---------------------------
+    // OTP EMAIL (PROFESSIONAL HTML)
+    // ---------------------------
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; background:#f6f6f6; padding:40px;">
+        <div style="max-width:600px; margin:auto; background:white; padding:25px 35px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.1);">
+
+          <h2 style="text-align:center; color:#29066D; margin-top:0;">
+            Email Verification - Canvi Sports
+          </h2>
+
+          <p>Dear Player,</p>
+
+          <p>
+            Thank you for registering for the <strong>Canvi Pro Kabaddi League</strong>.
+            To verify your email address, please use the OTP given below:
+          </p>
+
+          <div style="text-align:center; margin:25px 0;">
+            <div style="
+              display:inline-block;
+              font-size:32px;
+              letter-spacing:8px;
+              font-weight:bold;
+              padding:12px 20px;
+              background:#29066D;
+              color:white;
+              border-radius:8px;">
+              ${otp}
+            </div>
+          </div>
+
+          <p style="font-size:15px;">
+            This OTP is valid for the next <strong>10 minutes</strong>.<br>
+            Please do not share this code with anyone.
+          </p>
+
+          <p>
+            We look forward to completing your registration process.
+          </p>
+
+          <p><strong>For any queries or issues:</strong><br>
+            📧 info@canvisports.com<br>
+            📞 +91-8696143069
+          </p>
+
+          <p>
+            Warm regards,<br>
+            <strong>Team Canvi Sports</strong>
+          </p>
+        </div>
+      </div>
+    `;
+
+    // send mail
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Verify Your Email Address - Canvi Sports",
-      text: `Dear Player,
-                    Thank you for registering for the Canvi Pro Kabaddi League.
-                    To verify your email address, please use the OTP given below:
-                    Your OTP: ${otp}
-                    This OTP is valid for the next 10 minutes.
-                    Please do not share this code with anyone.
-                    We look forward to completing your registration process.
-                    For any queries or issues, feel free to reach out to us:
-                    📧 info@canvisports.com
-                    📞 +91-8696143069
-                    Warm regards,
-                    Team Canvi Sports`,
+      html: htmlContent,
     });
+
     return NextResponse.json(
       {
         success: true,
