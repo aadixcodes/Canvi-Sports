@@ -24,9 +24,9 @@ const PartnersSection = () => {
     },
     {
       id: 4,
-      name: "Crafted By Kardo",
+      name: "Crafted By",
       logo: "/assets/partners/media and marketing partner.png",
-      category: "Crafted By Kardo"
+      category: "Crafted By"
     },
     {
       id: 5, 

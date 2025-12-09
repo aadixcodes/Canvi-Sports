@@ -22,7 +22,7 @@ const Footer = () => {
             {/* Logo - Much Larger for Mobile */}
             <div className="w-32 h-32 rounded-full flex items-center justify-center">
               <img
-                src="/assets/CanviSports.png"
+                src="/assets/partners/cpkl.jpg"
                 alt="Logo"
                 className="w-32 h-32 object-contain"
               />
@@ -155,7 +155,7 @@ const Footer = () => {
             {/* Logo - Larger for Desktop */}
             <div className="w-24 h-24 rounded-full flex items-center justify-center">
               <img
-                src="/assets/CanviSports.png"
+                src="/assets/partners/cpkl.jpg"
                 alt="Logo"
                 className="w-24 h-24 object-contain"
               />
