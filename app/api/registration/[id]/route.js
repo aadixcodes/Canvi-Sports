@@ -57,7 +57,8 @@ export async function GET(request, { params }) {
     try {
         await connectDB();
 
-        const { id } = params;
+        const awaitedParams = typeof params?.then === 'function' ? await params : params;
+        const { id } = awaitedParams;
         const registration = await Registration.findById(id);
 
         if (!registration) {
@@ -77,6 +78,39 @@ export async function GET(request, { params }) {
         );
     } catch (error) {
         console.error("Get registration error:", error);
+        return NextResponse.json(
+            { success: false, message: error.message || "Internal server error" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function DELETE(request, { params }) {
+    try {
+        await connectDB();
+
+        const awaitedParams = typeof params?.then === 'function' ? await params : params;
+        const { id } = awaitedParams;
+
+        const registration = await Registration.findByIdAndDelete(id);
+
+        if (!registration) {
+            return NextResponse.json(
+                { success: false, message: "Registration not found" },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json(
+            {
+                success: true,
+                message: "Registration deleted successfully",
+                data: registration
+            },
+            { status: 200 }
+        );
+    } catch (error) {
+        console.error("Delete registration error:", error);
         return NextResponse.json(
             { success: false, message: error.message || "Internal server error" },
             { status: 500 }

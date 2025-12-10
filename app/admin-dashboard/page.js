@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Filter, Download, X, CheckCircle, XCircle, Eye, LogOut, Loader2 } from 'lucide-react';
+import { Search, Filter, Download, X, CheckCircle, XCircle, Eye, LogOut, Loader2, Trash2 } from 'lucide-react';
 import { da } from 'zod/v4/locales';
 
 const AdminDashboard = () => {
@@ -152,6 +152,44 @@ const AdminDashboard = () => {
     } finally {
       setActionLoading(prev => ({ ...prev, [id]: null }));
     }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this registration? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      setActionLoading(prev => ({ ...prev, [id]: 'delete' }));
+      const response = await fetch(`/api/registration/${id}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (data.success) {
+        setCandidates(prev => prev.filter(candidate => candidate.id !== id));
+        alert('Registration deleted successfully');
+      } else {
+        alert(data.message || 'Failed to delete registration');
+      }
+    } catch (error) {
+      console.error('Error deleting registration:', error);
+      alert('Failed to delete registration. Please try again.');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [id]: null }));
+    }
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    const options = { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    };
+    return date.toLocaleString('en-IN', options);
   };
 
   const filteredCandidates = candidates.filter(candidate => {
@@ -427,17 +465,18 @@ const AdminDashboard = () => {
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
                         Terms
                       </th>
-                      {activeTab === 'requests' && (
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
-                          Actions
-                        </th>
-                      )}
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
+                        Submitted On
+                      </th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-sub">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {loading ? (
                       <tr>
-                        <td colSpan={activeTab === 'requests' ? 7 : 6} className="px-6 py-12 text-center">
+                        <td colSpan={7} className="px-6 py-12 text-center">
                           <div className="flex flex-col items-center justify-center gap-2">
                             <Loader2 className="w-8 h-8 animate-spin text-[#29066d]" />
                             <p className="text-gray-500 font-sub">Loading registrations...</p>
@@ -446,7 +485,7 @@ const AdminDashboard = () => {
                       </tr>
                     ) : filteredCandidates.length === 0 ? (
                       <tr>
-                        <td colSpan={activeTab === 'requests' ? 7 : 6} className="px-6 py-12 text-center">
+                        <td colSpan={7} className="px-6 py-12 text-center">
                           <div className="text-gray-400 text-lg font-sub">No candidates found</div>
                           <p className="text-gray-500 text-sm mt-2 font-sub">
                             {searchTerm || filterState 
@@ -505,36 +544,56 @@ const AdminDashboard = () => {
                               {candidate.terms ? 'Agreed' : 'Not Agreed'}
                             </span>
                           </td>
-                          {activeTab === 'requests' && (
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleAccept(candidate.id, candidate.email, candidate.firstName)}
-                                  disabled={actionLoading[candidate.id] === 'accept'}
-                                  className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700 transition-colors text-xs font-sub disabled:bg-green-400 disabled:cursor-not-allowed"
-                                >
-                                  {actionLoading[candidate.id] === 'accept' ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <CheckCircle className="w-3 h-3" />
-                                  )}
-                                  Accept
-                                </button>
-                                <button
-                                  onClick={() => handleReject(candidate.id, candidate.email, candidate.firstName)}
-                                  disabled={actionLoading[candidate.id] === 'reject'}
-                                  className="flex items-center gap-1 bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors text-xs font-sub disabled:bg-red-400 disabled:cursor-not-allowed"
-                                >
-                                  {actionLoading[candidate.id] === 'reject' ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : (
-                                    <XCircle className="w-3 h-3" />
-                                  )}
-                                  Reject
-                                </button>
-                              </div>
-                            </td>
-                          )}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 font-sub">
+                              {formatDateTime(candidate.createdAt)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex items-center gap-2">
+                              {activeTab === 'requests' && (
+                                <>
+                                  <button
+                                    onClick={() => handleAccept(candidate.id, candidate.email, candidate.firstName)}
+                                    disabled={actionLoading[candidate.id] === 'accept'}
+                                    className="flex items-center gap-1 bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700 transition-colors text-xs font-sub disabled:bg-green-400 disabled:cursor-not-allowed"
+                                  >
+                                    {actionLoading[candidate.id] === 'accept' ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <CheckCircle className="w-3 h-3" />
+                                    )}
+                                    Accept
+                                  </button>
+                                  <button
+                                    onClick={() => handleReject(candidate.id, candidate.email, candidate.firstName)}
+                                    disabled={actionLoading[candidate.id] === 'reject'}
+                                    className="flex items-center gap-1 bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 transition-colors text-xs font-sub disabled:bg-red-400 disabled:cursor-not-allowed"
+                                  >
+                                    {actionLoading[candidate.id] === 'reject' ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <XCircle className="w-3 h-3" />
+                                    )}
+                                    Reject
+                                  </button>
+                                </>
+                              )}
+                              <button
+                                onClick={() => handleDelete(candidate.id)}
+                                disabled={actionLoading[candidate.id] === 'delete'}
+                                className="flex items-center gap-1 bg-red-700 text-white px-3 py-1 rounded-lg hover:bg-red-800 transition-colors text-xs font-sub disabled:bg-red-400 disabled:cursor-not-allowed"
+                                title="Delete Registration"
+                              >
+                                {actionLoading[candidate.id] === 'delete' ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3 h-3" />
+                                )}
+                                Delete
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))
                     )}
